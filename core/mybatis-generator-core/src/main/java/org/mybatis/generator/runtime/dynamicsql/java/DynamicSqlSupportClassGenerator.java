@@ -28,6 +28,7 @@ import org.mybatis.generator.api.dom.java.JavaVisibility;
 import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.codegen.AbstractGenerator;
+import org.mybatis.generator.config.ColumnOverride;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.internal.util.JavaBeansUtil;
 import org.mybatis.generator.internal.util.StringUtility;
@@ -119,8 +120,7 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
             IntrospectedColumn column, String tableFieldName) {
         topLevelClass.addImportedType(column.getFullyQualifiedJavaType());
         if (!column.getFullyQualifiedJavaType().getTypeArguments().isEmpty()
-                && (column.getTypeHandler().isPresent() || StringUtility.isTrue(
-                column.getProperties().getProperty(PropertyRegistry.COLUMN_OVERRIDE_FORCE_JAVA_TYPE)))) {
+                && shouldIncludeJavaType(column)) {
             topLevelClass.addImportedType("org.apache.ibatis.type.TypeReference");
         }
 
@@ -165,6 +165,13 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
         return new FullyQualifiedJavaType("SqlColumn<%s>".formatted(javaType.getShortName())); //$NON-NLS-1$
     }
 
+    private boolean shouldIncludeJavaType(IntrospectedColumn column) {
+        return introspectedTable.getTableConfiguration().getColumnOverride(column.getActualColumnName())
+                .flatMap(ColumnOverride::getJavaType).isPresent()
+                || StringUtility.isTrue(
+                        column.getProperties().getProperty(PropertyRegistry.COLUMN_OVERRIDE_FORCE_JAVA_TYPE));
+    }
+
     private String calculateInnerInitializationString(IntrospectedColumn column, FullyQualifiedJavaType javaType) {
         StringBuilder initializationString = new StringBuilder();
 
@@ -176,8 +183,7 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
                 th -> initializationString.append(", \"%s\")".formatted(th)), //$NON-NLS-1$
                 () -> initializationString.append(')'));
 
-        if (column.getTypeHandler().isPresent() || StringUtility.isTrue(
-                column.getProperties().getProperty(PropertyRegistry.COLUMN_OVERRIDE_FORCE_JAVA_TYPE))) {
+        if (shouldIncludeJavaType(column)) {
             initializationString.append(".withJavaType("); //$NON-NLS-1$
             if (javaType.getTypeArguments().isEmpty()) {
                 initializationString.append(javaType.getShortName());
