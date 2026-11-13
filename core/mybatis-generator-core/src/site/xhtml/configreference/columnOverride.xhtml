@@ -67,8 +67,8 @@ element of the <a href="table.html">&lt;table&gt;</a> element.</p>
         should be mapped to java.lang.Object).
         <p>For the Java Dynamic SQL runtime, explicitly setting this attribute also emits the Java type
         in the generated column definition. This applies with or without a configured type handler,
-        including when <code>forceJavaTypeIntoMapping</code> is false. Generic types are represented by
-        an inline MyBatis <code>TypeReference</code> expression.</p></td>
+        including when <code>forceJavaTypeIntoMapping</code> is false.
+        See the property below for parameterized-type support and runtime requirements.</p></td>
   </tr>
   <tr>
     <td valign="top">jdbcType</td>
@@ -147,10 +147,11 @@ specified with the <a href="property.html">&lt;property&gt;</a> child element:</
       includes the type inferred from database metadata, a type resolver, or a plugin. A configured
       <code>typeHandler</code> alone does not enable Java type emission. A false value for this property
       does not suppress the type explicitly declared by <code>javaType</code>.
-      Parameterized types are emitted as inline MyBatis <code>TypeReference</code> expressions in the existing
-      column definition. For example, a <code>java.util.List&lt;com.example.Role&gt;</code> override with a
-      generic handler carries the complete <code>List&lt;Role&gt;</code> type without additional helper files.
-      This requires corresponding generic-type support in MyBatis and MyBatis Dynamic SQL.</p>
+      Parameterized types use an inline, fully qualified MyBatis <code>TypeReference</code> expression.
+      For example, a <code>java.util.List&lt;com.example.Role&gt;</code> override emits
+      <code>.withJavaType(new org.apache.ibatis.type.TypeReference&lt;List&lt;Role&gt;&gt;() {}.getRawType())</code>.
+      This avoids name collisions with application types and requires corresponding generic-type support
+      in MyBatis and MyBatis Dynamic SQL.</p>
       <p>This property is only recognized, and only needed, by the MyBatis3DynamicSQL and MyBatis3Kotlin runtimes.</p>
       <p><i>The default value is false</i></p>
       <p>Since version 1.4.1</p>
