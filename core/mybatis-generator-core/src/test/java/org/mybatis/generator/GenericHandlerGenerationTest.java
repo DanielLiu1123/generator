@@ -45,9 +45,9 @@ public class GenericHandlerGenerationTest {
                 <columnOverride column="STATE" javaType="java.lang.String" typeHandler="example.JsonHandler"/>
                 """, "");
         var support = supportSource(files);
-        assertThat(support).contains(
-                "new org.apache.ibatis.type.TypeReference<Map<String, List<Integer>>>() {}.getRawType()",
-                "new org.apache.ibatis.type.TypeReference<List<String>>() {}.getRawType()",
+        assertThat(support).contains("import org.apache.ibatis.type.TypeReference;",
+                "new TypeReference<Map<String, List<Integer>>>() {}.getRawType()",
+                "new TypeReference<List<String>>() {}.getRawType()",
                 ".withJavaType(String.class)");
         assertThat(support).doesNotContain("List<String>.class", "Map<String, List<Integer>>.class");
         assertThat(files).hasSize(3);
@@ -88,7 +88,8 @@ public class GenericHandlerGenerationTest {
         var files = generate(override, "<plugin type=\"" + InferredGenericTypePlugin.class.getName() + "\"/>");
         var support = supportSource(files);
         if (force) {
-            assertThat(support).contains("new org.apache.ibatis.type.TypeReference<List<String>>() {}.getRawType()");
+            assertThat(support).contains("import org.apache.ibatis.type.TypeReference;",
+                    "new TypeReference<List<String>>() {}.getRawType()");
         } else {
             assertThat(support).doesNotContain("org.apache.ibatis.type.TypeReference", ".withJavaType(");
         }
@@ -106,11 +107,11 @@ public class GenericHandlerGenerationTest {
             "int | Integer.class",
             "java.lang.String[] | String[].class",
             "java.util.List<java.lang.String> | "
-                    + "new org.apache.ibatis.type.TypeReference<List<String>>() {}.getRawType()",
+                    + "new TypeReference<List<String>>() {}.getRawType()",
             "java.util.List<? extends java.lang.Number> | "
-                    + "new org.apache.ibatis.type.TypeReference<List<? extends Number>>() {}.getRawType()",
+                    + "new TypeReference<List<? extends Number>>() {}.getRawType()",
             "java.util.List<? super java.lang.Integer> | "
-                    + "new org.apache.ibatis.type.TypeReference<List<? super Integer>>() {}.getRawType()"
+                    + "new TypeReference<List<? super Integer>>() {}.getRawType()"
     })
     void emitsValidTypeExpressions(String javaType, String expression) throws Exception {
         var override = """
@@ -121,15 +122,16 @@ public class GenericHandlerGenerationTest {
     }
 
     @Test
-    void avoidsTypeReferenceNameCollisionsWithApplicationTypes() throws Exception {
+    void importsTypeReferenceOnceForMultipleGenericColumns() throws Exception {
         var files = generate("""
-                <columnOverride column="PAYLOAD"
-                    javaType="java.util.List&lt;org.mybatis.generator.GenericHandlerGenerationTest.TypeReference&gt;"/>
+                <columnOverride column="PAYLOAD" javaType="java.util.List&lt;java.lang.String&gt;"/>
+                <columnOverride column="NAMES" javaType="java.util.List&lt;java.lang.Integer&gt;"/>
                 """, "");
         var support = supportSource(files);
-        assertThat(support).contains("import org.mybatis.generator.GenericHandlerGenerationTest.TypeReference;",
-                ".withJavaType(new org.apache.ibatis.type.TypeReference<List<TypeReference>>() {}.getRawType())");
-        assertThat(support).doesNotContain("import org.apache.ibatis.type.TypeReference;");
+        assertThat(support).containsOnlyOnce("import org.apache.ibatis.type.TypeReference;");
+        assertThat(support).contains("new TypeReference<List<String>>() {}.getRawType()",
+                "new TypeReference<List<Integer>>() {}.getRawType()");
+        assertThat(support).doesNotContain("new org.apache.ibatis.type.TypeReference");
     }
 
     private List<GeneratedJavaFile> generate(String overrides, String plugins) throws Exception {
@@ -172,9 +174,6 @@ public class GenericHandlerGenerationTest {
                 .filter(file -> file.getFileName().endsWith("DynamicSqlSupport.java")).toList();
         assertThat(supportFiles).hasSize(1);
         return formatter.getFormattedContent(supportFiles.get(0).getCompilationUnit());
-    }
-
-    public static class TypeReference {
     }
 
     public static class InferredGenericTypePlugin extends PluginAdapter {

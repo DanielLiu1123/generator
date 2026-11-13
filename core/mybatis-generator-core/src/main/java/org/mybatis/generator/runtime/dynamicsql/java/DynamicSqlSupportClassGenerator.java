@@ -153,7 +153,7 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
         Field field = new Field(fieldName, fieldType);
         field.setVisibility(JavaVisibility.PUBLIC);
         field.setFinal(true);
-        field.setInitializationString(calculateInnerInitializationString(column, javaType));
+        field.setInitializationString(calculateInnerInitializationString(topLevelClass, column, javaType));
         innerClass.addField(field);
     }
 
@@ -168,7 +168,8 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
                         column.getProperties().getProperty(PropertyRegistry.COLUMN_OVERRIDE_FORCE_JAVA_TYPE));
     }
 
-    private String calculateInnerInitializationString(IntrospectedColumn column, FullyQualifiedJavaType javaType) {
+    private String calculateInnerInitializationString(TopLevelClass topLevelClass, IntrospectedColumn column,
+            FullyQualifiedJavaType javaType) {
         StringBuilder initializationString = new StringBuilder();
 
         initializationString.append("column(\"%s\", JDBCType.%s".formatted(//$NON-NLS-1$ //$NON-NLS-2$
@@ -180,10 +181,14 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
                 () -> initializationString.append(')'));
 
         if (shouldIncludeJavaType(column)) {
-            String typeExpression = javaType.getTypeArguments().isEmpty()
-                    ? "%s.class".formatted(javaType.getShortName()) //$NON-NLS-1$
-                    : "new org.apache.ibatis.type.TypeReference<%s>() {}.getRawType()" //$NON-NLS-1$
-                            .formatted(javaType.getShortName());
+            String typeExpression;
+            if (javaType.getTypeArguments().isEmpty()) {
+                typeExpression = "%s.class".formatted(javaType.getShortName()); //$NON-NLS-1$
+            } else {
+                topLevelClass.addImportedType("org.apache.ibatis.type.TypeReference"); //$NON-NLS-1$
+                typeExpression = "new TypeReference<%s>() {}.getRawType()" //$NON-NLS-1$
+                        .formatted(javaType.getShortName());
+            }
             initializationString.append(".withJavaType(%s)".formatted(typeExpression)); //$NON-NLS-1$
         }
 

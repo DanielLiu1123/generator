@@ -147,11 +147,10 @@ specified with the <a href="property.html">&lt;property&gt;</a> child element:</
       includes the type inferred from database metadata, a type resolver, or a plugin. A configured
       <code>typeHandler</code> alone does not enable Java type emission. A false value for this property
       does not suppress the type explicitly declared by <code>javaType</code>.
-      Parameterized types use an inline, fully qualified MyBatis <code>TypeReference</code> expression.
+      Parameterized types use an inline MyBatis <code>TypeReference</code> expression with a corresponding import.
       For example, a <code>java.util.List&lt;com.example.Role&gt;</code> override emits
-      <code>.withJavaType(new org.apache.ibatis.type.TypeReference&lt;List&lt;Role&gt;&gt;() {}.getRawType())</code>.
-      This avoids name collisions with application types and requires corresponding generic-type support
-      in MyBatis and MyBatis Dynamic SQL.</p>
+      <code>.withJavaType(new TypeReference&lt;List&lt;Role&gt;&gt;() {}.getRawType())</code>.
+      This requires corresponding generic-type support in MyBatis and MyBatis Dynamic SQL.</p>
       <p>This property is only recognized, and only needed, by the MyBatis3DynamicSQL and MyBatis3Kotlin runtimes.</p>
       <p><i>The default value is false</i></p>
       <p>Since version 1.4.1</p>
