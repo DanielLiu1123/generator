@@ -64,7 +64,11 @@ element of the <a href="table.html">&lt;table&gt;</a> element.</p>
         can be used to override the type calculated by the <code>JavaTypeResolver</code>
         if required.  For some databases, this is necessary to handle
         "odd" database types (e.g. MySql's unsigned bigint type
-        should be mapped to java.lang.Object).</td>
+        should be mapped to java.lang.Object).
+        <p>For the Java Dynamic SQL runtime, explicitly setting this attribute also emits the Java type
+        in the generated column definition. This applies with or without a configured type handler,
+        including when <code>forceJavaTypeIntoMapping</code> is false.
+        See the property below for parameterized-type support and runtime requirements.</p></td>
   </tr>
   <tr>
     <td valign="top">jdbcType</td>
@@ -137,6 +141,16 @@ specified with the <a href="property.html">&lt;property&gt;</a> child element:</
       When true, this property will add the Java type to the generated mappings. This is normally not necessary.
       However, some functions will need it such as when you use MyBatis' EnumOrdinalTypeHandler.
 
+      <p>For the Java Dynamic SQL runtime, explicitly configuring the <code>javaType</code> attribute
+      automatically includes that type in the generated column definition, regardless of whether a
+      <code>typeHandler</code> is configured. Setting <code>forceJavaTypeIntoMapping</code> to true also
+      includes the type inferred from database metadata, a type resolver, or a plugin. A configured
+      <code>typeHandler</code> alone does not enable Java type emission. A false value for this property
+      does not suppress the type explicitly declared by <code>javaType</code>.
+      Parameterized types use an inline MyBatis <code>TypeReference</code> expression with a corresponding import.
+      For example, a <code>java.util.List&lt;com.example.Role&gt;</code> override emits
+      <code>.withJavaType(new TypeReference&lt;List&lt;Role&gt;&gt;() {}.getRawType())</code>.
+      This requires corresponding generic-type support in MyBatis and MyBatis Dynamic SQL.</p>
       <p>This property is only recognized, and only needed, by the MyBatis3DynamicSQL and MyBatis3Kotlin runtimes.</p>
       <p><i>The default value is false</i></p>
       <p>Since version 1.4.1</p>

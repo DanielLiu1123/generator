@@ -28,6 +28,7 @@ import org.mybatis.generator.api.dom.java.JavaVisibility;
 import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.codegen.AbstractGenerator;
+import org.mybatis.generator.config.ColumnOverride;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.internal.util.JavaBeansUtil;
 import org.mybatis.generator.internal.util.StringUtility;
@@ -152,7 +153,7 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
         Field field = new Field(fieldName, fieldType);
         field.setVisibility(JavaVisibility.PUBLIC);
         field.setFinal(true);
-        field.setInitializationString(calculateInnerInitializationString(column, javaType));
+        field.setInitializationString(calculateInnerInitializationString(topLevelClass, column, javaType));
         innerClass.addField(field);
     }
 
@@ -160,7 +161,15 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
         return new FullyQualifiedJavaType("SqlColumn<%s>".formatted(javaType.getShortName())); //$NON-NLS-1$
     }
 
-    private String calculateInnerInitializationString(IntrospectedColumn column, FullyQualifiedJavaType javaType) {
+    private boolean shouldIncludeJavaType(IntrospectedColumn column) {
+        return introspectedTable.getTableConfiguration().getColumnOverride(column.getActualColumnName())
+                .flatMap(ColumnOverride::getJavaType).isPresent()
+                || StringUtility.isTrue(
+                        column.getProperties().getProperty(PropertyRegistry.COLUMN_OVERRIDE_FORCE_JAVA_TYPE));
+    }
+
+    private String calculateInnerInitializationString(TopLevelClass topLevelClass, IntrospectedColumn column,
+            FullyQualifiedJavaType javaType) {
         StringBuilder initializationString = new StringBuilder();
 
         initializationString.append("column(\"%s\", JDBCType.%s".formatted(//$NON-NLS-1$ //$NON-NLS-2$
@@ -171,11 +180,16 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
                 th -> initializationString.append(", \"%s\")".formatted(th)), //$NON-NLS-1$
                 () -> initializationString.append(')'));
 
-        if (StringUtility.isTrue(
-                column.getProperties().getProperty(PropertyRegistry.COLUMN_OVERRIDE_FORCE_JAVA_TYPE))) {
-            initializationString.append(".withJavaType("); //$NON-NLS-1$
-            initializationString.append(javaType.getShortName());
-            initializationString.append(".class)"); //$NON-NLS-1$
+        if (shouldIncludeJavaType(column)) {
+            String typeExpression;
+            if (javaType.getTypeArguments().isEmpty()) {
+                typeExpression = "%s.class".formatted(javaType.getShortName()); //$NON-NLS-1$
+            } else {
+                topLevelClass.addImportedType("org.apache.ibatis.type.TypeReference"); //$NON-NLS-1$
+                typeExpression = "new TypeReference<%s>() {}.getRawType()" //$NON-NLS-1$
+                        .formatted(javaType.getShortName());
+            }
+            initializationString.append(".withJavaType(%s)".formatted(typeExpression)); //$NON-NLS-1$
         }
 
         initializationString.append(".withJavaProperty(\""); //$NON-NLS-1$
