@@ -137,6 +137,11 @@ specified with the <a href="property.html">&lt;property&gt;</a> child element:</
       When true, this property will add the Java type to the generated mappings. This is normally not necessary.
       However, some functions will need it such as when you use MyBatis' EnumOrdinalTypeHandler.
 
+      <p>For the Java Dynamic SQL runtime, configuring a type handler automatically includes the Java type.
+      Parameterized types are emitted as inline MyBatis <code>TypeReference</code> expressions in the existing
+      column definition. For example, a <code>java.util.List&lt;com.example.Role&gt;</code> override with a
+      generic handler carries the complete <code>List&lt;Role&gt;</code> type without additional helper files.
+      This requires corresponding generic-type support in MyBatis and MyBatis Dynamic SQL.</p>
       <p>This property is only recognized, and only needed, by the MyBatis3DynamicSQL and MyBatis3Kotlin runtimes.</p>
       <p><i>The default value is false</i></p>
       <p>Since version 1.4.1</p>

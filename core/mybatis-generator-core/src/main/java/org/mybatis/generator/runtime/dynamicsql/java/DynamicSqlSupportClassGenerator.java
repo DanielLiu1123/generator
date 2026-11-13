@@ -118,6 +118,11 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
     private void handleColumn(TopLevelClass topLevelClass, InnerClass innerClass,
             IntrospectedColumn column, String tableFieldName) {
         topLevelClass.addImportedType(column.getFullyQualifiedJavaType());
+        if (!column.getFullyQualifiedJavaType().getTypeArguments().isEmpty()
+                && (column.getTypeHandler().isPresent() || StringUtility.isTrue(
+                column.getProperties().getProperty(PropertyRegistry.COLUMN_OVERRIDE_FORCE_JAVA_TYPE)))) {
+            topLevelClass.addImportedType("org.apache.ibatis.type.TypeReference");
+        }
 
         FullyQualifiedJavaType javaType;
         if (column.getFullyQualifiedJavaType().isPrimitive()) {
@@ -171,11 +176,17 @@ public class DynamicSqlSupportClassGenerator extends AbstractGenerator {
                 th -> initializationString.append(", \"%s\")".formatted(th)), //$NON-NLS-1$
                 () -> initializationString.append(')'));
 
-        if (StringUtility.isTrue(
+        if (column.getTypeHandler().isPresent() || StringUtility.isTrue(
                 column.getProperties().getProperty(PropertyRegistry.COLUMN_OVERRIDE_FORCE_JAVA_TYPE))) {
             initializationString.append(".withJavaType("); //$NON-NLS-1$
-            initializationString.append(javaType.getShortName());
-            initializationString.append(".class)"); //$NON-NLS-1$
+            if (javaType.getTypeArguments().isEmpty()) {
+                initializationString.append(javaType.getShortName());
+                initializationString.append(".class)"); //$NON-NLS-1$
+            } else {
+                initializationString.append("new TypeReference<"); //$NON-NLS-1$
+                initializationString.append(javaType.getShortName());
+                initializationString.append(">() {}.getRawType())"); //$NON-NLS-1$
+            }
         }
 
         initializationString.append(".withJavaProperty(\""); //$NON-NLS-1$
