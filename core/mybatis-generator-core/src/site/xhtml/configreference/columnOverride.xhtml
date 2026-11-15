@@ -64,7 +64,10 @@ element of the <a href="table.html">&lt;table&gt;</a> element.</p>
         can be used to override the type calculated by the <code>JavaTypeResolver</code>
         if required.  For some databases, this is necessary to handle
         "odd" database types (e.g. MySql's unsigned bigint type
-        should be mapped to java.lang.Object).</td>
+        should be mapped to java.lang.Object).
+        <p>For the Java Dynamic SQL runtime, setting this attribute also adds
+        <code>.withJavaType(...)</code> to the generated column, regardless of
+        <code>typeHandler</code> or <code>forceJavaTypeIntoMapping</code>.</p></td>
   </tr>
   <tr>
     <td valign="top">jdbcType</td>
